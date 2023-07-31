@@ -1,0 +1,42 @@
+# lightning.pytorch==2.0.0
+name: dev-resume
+version: v0
+
+seed_everything: 42
+trainer:
+  accelerator: gpu
+  precision: 16-mixed
+  max_epochs: 300
+
+model:
+  class_path: LitCifar10
+  init_args:
+    net:
+      class_path: Cifar10Resnet18
+      init_args:
+        num_classes: 10
+
+    loss_module:
+      class_path: CrossEntropyLoss
+
+data:
+  class_path: Cifar10DataModule
+  init_args:
+    root: data
+    batch_size: 128
+    val_split: 0.1
+    transforms:
+      class_path: DefaultTransforms
+
+optimizer:
+  class_path: SGD
+  init_args:
+    lr: 0.1
+    momentum: 0.9
+    weight_decay: 5e-4
+
+lr_scheduler:
+  class_path: CosineAnnealingLR
+  init_args:
+    T_max: ${trainer.max_epochs}
+# ckpt_path: logs/debug-resume/version_0/fit/checkpoints/last.ckpt

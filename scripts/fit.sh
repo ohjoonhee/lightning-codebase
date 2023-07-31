@@ -1,0 +1,1 @@
+python -u src/main.py fit $@
