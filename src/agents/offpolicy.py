@@ -30,11 +30,11 @@ class OffPolicyAgent:
         self, net: nn.Module, epsilon: float, device: str = "cpu"
     ) -> Tuple[float, bool]:
         action = self.get_action(net, epsilon, device)
-        s2, r, term, trunc, _ = self.env.step(action)
-        d = term or trunc
-        exp = Experience(self.state, action, r, d, s2)
+        state, reward, term, trunc, _ = self.env.step(action)
+        done = term or trunc
+        exp = Experience(self.state, action, reward, done, state)
         self.replay_buffer.append(exp)
-        self.state = s2
-        if d:
+        self.state = state
+        if done:
             self.reset()
-        return r, d
+        return reward, done
