@@ -9,8 +9,8 @@ from cli_module.tune import TuneCLI
 
 
 import dataset
-import model
-import module
+import models
+import agents
 import transforms
 
 

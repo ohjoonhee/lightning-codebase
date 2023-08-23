@@ -16,10 +16,8 @@ except:
     CLI = RichCLI
 
 
-import dataset
-import model
-import module
-import transforms
+import models
+import agents
 
 
 def cli_main():
