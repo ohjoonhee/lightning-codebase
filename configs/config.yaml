@@ -1,6 +1,6 @@
 # lightning.pytorch==2.0.0
 name: dev-resume
-version: v0
+version: v1
 
 seed_everything: 42
 trainer:

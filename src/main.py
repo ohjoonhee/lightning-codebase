@@ -16,9 +16,9 @@ try:
 
     CLI = RichWandbCLI
 except:
-    from cli_module.rich_tensorboard import TensorboardCLI
+    from cli_module.rich_tensorboard import RichTensorboardCLI
 
-    CLI = TensorboardCLI
+    CLI = RichTensorboardCLI
 
 
 import dataset
