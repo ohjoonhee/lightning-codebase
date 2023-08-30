@@ -8,10 +8,10 @@ from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.cli import LightningArgumentParser
 
 
-from .rich_tensorboard import TensorboardCLI
+from .rich_tensorboard import RichTensorboardCLI
 
 
-class RichWandbCLI(TensorboardCLI):
+class RichWandbCLI(RichTensorboardCLI):
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         super().add_arguments_to_parser(parser)
 
