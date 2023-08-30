@@ -19,7 +19,7 @@ from gymnasium.wrappers import RecordVideo
 from agents.offpolicy import OffPolicyAgent
 from models.mlp import MLP
 from utils.replay_buffer import ReplayBuffer, Experience
-from utils.rl_dataset import RLDataset
+from utils.rl_dataset import RLDataset, MapRLDataset
 
 
 class DQNModule(L.LightningModule):
@@ -135,9 +135,13 @@ class DQNModule(L.LightningModule):
         record_env.close()
 
     def __dataloader(self):
-        dataset = RLDataset(self.buffer, self.hparams.episode_length)
+        # dataset = RLDataset(self.buffer, self.hparams.episode_length)
+        dataset = MapRLDataset(self.buffer, self.hparams.episode_length)
         dataloader = DataLoader(
-            dataset=dataset, batch_size=self.hparams.batch_size, num_workers=4
+            dataset=dataset,
+            batch_size=self.hparams.batch_size,
+            shuffle=True,
+            num_workers=4,
         )
         return dataloader
 

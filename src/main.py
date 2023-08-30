@@ -25,12 +25,10 @@ def cli_main():
 
     cli = CLI(
         L.LightningModule,
-        L.LightningDataModule,
         parser_kwargs={
             "parser_mode": "omegaconf",
         },
         subclass_mode_model=True,
-        subclass_mode_data=True,
     )
 
 
