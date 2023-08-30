@@ -11,7 +11,7 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.cli import LightningArgumentParser
 
 
-class RichCLI(LightningCLI):
+class RichTensorboardCLI(LightningCLI):
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         parser.add_lightning_class_args(ModelCheckpoint, "model_ckpt")
         parser.set_defaults(
