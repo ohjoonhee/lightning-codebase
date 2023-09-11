@@ -1,30 +1,77 @@
 import os
 import os.path as osp
-import inspect
 
 import json
+from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 import wandb
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.cli import LightningArgumentParser
+from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 
 
-from .rich_tensorboard import RichTensorboardCLI
+class CleanUpWandbLogger(WandbLogger):
+    def __init__(self, clean: bool = True, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.clean = clean
+        self.api = wandb.Api()
+
+    def _clean_model_artifacts(self) -> None:
+        url = f"{self.experiment.entity}/{self.experiment.project}/{self.version}"
+        run = self.api.run(url)
+        model_artifacts = [
+            artifact
+            for artifact in run.logged_artifacts()
+            if artifact.type == "model" and artifact.state == "COMMITTED"
+        ]
+        for artifact in model_artifacts:
+            if not artifact.aliases:
+                artifact.delete()
+
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
+        super().after_save_checkpoint(checkpoint_callback)
+        if self.clean:
+            self._clean_model_artifacts()
+
+    def __del__(self):
+        if self.clean:
+            self._clean_model_artifacts()
 
 
-class RichWandbCLI(RichTensorboardCLI):
+class RichWandbCLI(LightningCLI):
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
-        super().add_arguments_to_parser(parser)
-
         parser.set_defaults(
             {
                 "trainer.logger": {
-                    "class_path": "lightning.pytorch.loggers.WandbLogger",
+                    "class_path": "CleanUpWandbLogger",
                     "init_args": {
                         "project": "debug",
                         "save_dir": "logs",
+                        "log_model": "all",
+                        "clean": True,
                     },
                 },
             }
+        )
+
+        parser.add_lightning_class_args(ModelCheckpoint, "model_ckpt")
+        parser.set_defaults(
+            {
+                "model_ckpt.monitor": "val/loss",
+                "model_ckpt.mode": "min",
+                "model_ckpt.save_last": True,
+                "model_ckpt.filename": "best-{epoch:03d}",
+            }
+        )
+
+        parser.add_lightning_class_args(LearningRateMonitor, "lr_monitor")
+        parser.set_defaults({"lr_monitor.logging_interval": "epoch"})
+
+        # add `-n` argument linked with trainer.logger.name for easy cmdline access
+        parser.add_argument(
+            "--name", "-n", dest="name", action="store", default="default_name"
+        )
+        parser.add_argument(
+            "--version", "-v", dest="version", action="store", default="version_0"
         )
         parser.link_arguments("name", "trainer.logger.init_args.name")
         parser.link_arguments(
@@ -55,24 +102,8 @@ class RichWandbCLI(RichTensorboardCLI):
             )
             print("Config uploaded to Wandb!!!")
 
-            run_id = self.trainer.logger.version
-            artifacts = wandb.Artifact(f"src-{run_id}", type="source-code")
-
-            if hasattr(self.model, "net"):
-                net_module = self.model.net.__class__
-                net_filepath = osp.abspath(inspect.getsourcefile(net_module))
-                artifacts.add_file(net_filepath, f"src-{run_id}/net.py")
-                print("Model.net source code added to artifacts!!!")
-
-            if hasattr(self.datamodule, "transforms"):
-                transform_module = self.datamodule.transforms.__class__
-                transform_filepath = osp.abspath(
-                    inspect.getsourcefile(transform_module)
-                )
-                artifacts.add_file(transform_filepath, f"src-{run_id}/transforms.py")
-                print("Transforms source code added to artifacts!!!")
-
-            wandb.log_artifact(artifacts)
+            self.trainer.logger.experiment.log_code("./src")
+            print("Code artifacts uploaded to Wandb!!!")
 
     def _check_resume(self):
         subcommand = self.config["subcommand"]
