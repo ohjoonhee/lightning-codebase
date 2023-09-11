@@ -21,6 +21,18 @@ python src/main.py fit -c configs/config.yaml -n debug-fit-run -v debug-version
 ```
 If using `wandb` for logging, change `"project"` key in `cli_module/rich_wandb.py`
 
+#### Clean Up Wandb Artifacts
+If using `wandb` for logging, model ckpt files are uploaded to `wandb`.  
+Since the size of ckpt files are too large, clean-up process needed.  
+Clean-up process delete all model ckpt artifacts without any aliases (e.g. `best`, `lastest`)
+To toggle off the clean-up process, add the following to `config.yaml`. Then every version of model ckpt files will be saved to `wandb`.
+```yaml
+trainer:
+  logger:
+    init_args:
+      clean: false
+```
+
 #### Automatic Batch Size Finder
 Just add `BatchSizeFinder` callbacks in the config
 ```yaml
