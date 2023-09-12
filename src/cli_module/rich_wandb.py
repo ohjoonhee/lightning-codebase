@@ -82,6 +82,17 @@ class RichWandbCLI(LightningCLI):
 
     @rank_zero_only
     def before_fit(self):
+        def _parse_config(s):
+            try:
+                return vars(s)
+            except:
+                if hasattr(s, "__repr__"):
+                    return repr(s)
+                elif hasattr(s, "__str__"):
+                    return str(s)
+                else:
+                    return None
+
         if not isinstance(self.trainer.logger, WandbLogger):
             print("WandbLogger not found! Skipping config upload...")
 
@@ -91,7 +102,7 @@ class RichWandbCLI(LightningCLI):
         else:
             subcommand = self.config["subcommand"]
             dict_config = json.loads(
-                json.dumps(self.config[subcommand], default=lambda s: vars(s))
+                json.dumps(self.config[subcommand], default=_parse_config)
             )
             self.trainer.logger.experiment.config.update(
                 wandb.helper.parse_config(
