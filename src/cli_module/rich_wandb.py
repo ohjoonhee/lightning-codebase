@@ -7,6 +7,7 @@ import wandb
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
 class CleanUpWandbLogger(WandbLogger):
@@ -15,6 +16,7 @@ class CleanUpWandbLogger(WandbLogger):
         self.clean = clean
         self.api = wandb.Api()
 
+    @rank_zero_only
     def _clean_model_artifacts(self) -> None:
         url = f"{self.experiment.entity}/{self.experiment.project}/{self.version}"
         run = self.api.run(url)
@@ -78,6 +80,7 @@ class RichWandbCLI(LightningCLI):
             "version", "trainer.logger.init_args.tags", compute_fn=lambda e: [e]
         )
 
+    @rank_zero_only
     def before_fit(self):
         if not isinstance(self.trainer.logger, WandbLogger):
             print("WandbLogger not found! Skipping config upload...")
@@ -149,6 +152,7 @@ class RichWandbCLI(LightningCLI):
 
         return sub_dir
 
+    @rank_zero_only
     def before_instantiate_classes(self) -> None:
         if "subcommand" not in self.config:
             return
