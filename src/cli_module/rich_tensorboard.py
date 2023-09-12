@@ -9,6 +9,7 @@ from lightning.pytorch.callbacks import (
 
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.cli import LightningArgumentParser
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
 class RichTensorboardCLI(LightningCLI):
@@ -72,6 +73,7 @@ class RichTensorboardCLI(LightningCLI):
             prev_log_dir, "checkpoints", "last.ckpt"
         )
 
+    @rank_zero_only
     def before_instantiate_classes(self) -> None:
         if "subcommand" not in self.config:
             return
