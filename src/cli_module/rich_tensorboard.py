@@ -43,11 +43,6 @@ class RichTensorboardCLI(LightningCLI):
             "--version", "-v", dest="version", action="store", default="version_0"
         )
 
-    def before_run(self):
-        if hasattr(torch, "compile"):
-            torch.compile(self.model)
-
-    before_fit = before_validate = before_test = before_run
 
     def _check_resume(self):
         subcommand = self.config["subcommand"]
