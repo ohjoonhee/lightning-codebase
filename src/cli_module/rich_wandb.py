@@ -31,11 +31,11 @@ class CleanUpWandbLogger(WandbLogger):
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         super().after_save_checkpoint(checkpoint_callback)
-        if self.clean:
+        if self.clean and self._log_model:
             self._clean_model_artifacts()
 
     def __del__(self):
-        if self.clean:
+        if self.clean and self._log_model:
             self._clean_model_artifacts()
 
 
@@ -48,7 +48,7 @@ class RichWandbCLI(LightningCLI):
                     "init_args": {
                         "project": "debug",
                         "save_dir": "logs",
-                        "log_model": "all",
+                        # "log_model": "all",
                         "clean": True,
                     },
                 },
@@ -190,9 +190,16 @@ class RichWandbCLI(LightningCLI):
         log_dir = osp.join(save_dir, name, version, sub_dir)
         self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"] = log_dir
 
-        self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-            log_dir, "checkpoints"
-        )
+        # TODO: add project name to log path 
+        ckpt_root_dirpath = self.config[subcommand]["model_ckpt"]["dirpath"]
+        if ckpt_root_dirpath:
+            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
+                ckpt_root_dirpath, log_dir, "checkpoints"
+            )
+        else:
+            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
+                log_dir, "checkpoints"
+            )
 
         # Making logger save_dir to prevent wandb using /tmp/wandb
         if not osp.exists(log_dir):
