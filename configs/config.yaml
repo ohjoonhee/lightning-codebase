@@ -1,12 +1,15 @@
 # lightning.pytorch==2.0.0
-name: dev-resume
-version: v1
+# name: dev-refactor-wnb
+name: dev-refactor-tb
+version: v5
 
 seed_everything: 42
 trainer:
   accelerator: gpu
   precision: 16-mixed
   max_epochs: 300
+  plugins:
+    - AsyncCheckpointIO
 
 model:
   class_path: LitCifar10
@@ -40,3 +43,6 @@ lr_scheduler:
   init_args:
     T_max: ${trainer.max_epochs}
 # ckpt_path: logs/debug-resume/version_0/fit/checkpoints/last.ckpt
+
+model_ckpt:
+  dirpath: "gs://ecstatic-kirch-iqa-dacon"
