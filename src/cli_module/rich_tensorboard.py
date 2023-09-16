@@ -1,12 +1,6 @@
 import os.path as osp
 import yaml
 
-from lightning.pytorch.callbacks import (
-    ModelCheckpoint,
-    LearningRateMonitor,
-)
-
-from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.cli import LightningArgumentParser
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 

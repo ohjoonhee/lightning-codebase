@@ -1,13 +1,13 @@
+from lightning.pytorch.cli import LightningArgumentParser
+from lightning.pytorch.callbacks import ModelCheckpoint
+
 import os
 import os.path as osp
 
 import yaml
 import json
-from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 import wandb
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
-from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 from .rich import RichCLI
