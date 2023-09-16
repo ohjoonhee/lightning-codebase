@@ -20,3 +20,6 @@ __pycache__
 
 # dummy files
 playground.py
+
+# docker
+Dockerfile
