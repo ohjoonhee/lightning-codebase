@@ -20,6 +20,10 @@ We assume cwd is project root dir.
 python src/main.py fit -c configs/config.yaml -n debug-fit-run -v debug-version
 ```
 If using `wandb` for logging, change `"project"` key in `cli_module/rich_wandb.py`
+If you want to access log directory in your `LightningModule`, you can access as follows.
+```python
+log_root_dir = self.logger.log_dir or self.logger.save_dir
+```
 
 ### Clean Up Wandb Artifacts
 If using `wandb` for logging, model ckpt files are uploaded to `wandb`.  
@@ -75,9 +79,6 @@ NOTE: No subcommand in cmdline
 #### Resume
 Basically all logs are stored in `logs/${name}/${version}/${job_type}` where `${name}` and `${version}` are configured in yaml file or cmdline. 
 `{job_type}` can be one of `fit`, `test`, `validate`, etc.
-
-```
-   
   
 
 ### `test` stage
