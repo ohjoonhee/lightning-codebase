@@ -10,22 +10,12 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.cli import LightningArgumentParser
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
+from .rich import RichCLI
 
-class RichTensorboardCLI(LightningCLI):
+
+class RichTensorboardCLI(RichCLI):
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
-        parser.add_lightning_class_args(ModelCheckpoint, "model_ckpt")
-        parser.set_defaults(
-            {
-                "model_ckpt.monitor": "val/loss",
-                "model_ckpt.mode": "min",
-                "model_ckpt.save_last": True,
-                "model_ckpt.filename": "best",
-            }
-        )
-
-        parser.add_lightning_class_args(LearningRateMonitor, "lr_monitor")
-        parser.set_defaults({"lr_monitor.logging_interval": "epoch"})
-
+        super().add_arguments_to_parser(parser)
         parser.set_defaults(
             {
                 "trainer.logger": {
@@ -33,14 +23,6 @@ class RichTensorboardCLI(LightningCLI):
                     "init_args": {"save_dir": "logs"},
                 },
             }
-        )
-
-        # add `-n` argument linked with trainer.logger.name for easy cmdline access
-        parser.add_argument(
-            "--name", "-n", dest="name", action="store", default="default_name"
-        )
-        parser.add_argument(
-            "--version", "-v", dest="version", action="store", default="version_0"
         )
 
     def _check_resume(self):
@@ -97,14 +79,6 @@ class RichTensorboardCLI(LightningCLI):
         version = self.config[subcommand]["version"]
         sub_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["sub_dir"]
 
-        save_dir = osp.join(save_dir, name, version, sub_dir)
+        log_dir = osp.join(save_dir, name, version, sub_dir)
 
-        ckpt_root_dirpath = self.config[subcommand]["model_ckpt"]["dirpath"]
-        if ckpt_root_dirpath:
-            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-                ckpt_root_dirpath, save_dir, "checkpoints"
-            )
-        else:
-            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-                save_dir, "checkpoints"
-            )
+        self._update_model_ckpt_dirpath(log_dir)

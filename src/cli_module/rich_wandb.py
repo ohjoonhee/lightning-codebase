@@ -10,6 +10,8 @@ from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
+from .rich import RichCLI
+
 
 class CleanUpWandbLogger(WandbLogger):
     def __init__(self, clean: bool = True, *args, **kwargs) -> None:
@@ -40,8 +42,9 @@ class CleanUpWandbLogger(WandbLogger):
             self._clean_model_artifacts()
 
 
-class RichWandbCLI(LightningCLI):
+class RichWandbCLI(RichCLI):
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
+        super().add_arguments_to_parser(parser)
         parser.set_defaults(
             {
                 "trainer.logger": {
@@ -56,26 +59,6 @@ class RichWandbCLI(LightningCLI):
             }
         )
 
-        parser.add_lightning_class_args(ModelCheckpoint, "model_ckpt")
-        parser.set_defaults(
-            {
-                "model_ckpt.monitor": "val/loss",
-                "model_ckpt.mode": "min",
-                "model_ckpt.save_last": True,
-                "model_ckpt.filename": "best",
-            }
-        )
-
-        parser.add_lightning_class_args(LearningRateMonitor, "lr_monitor")
-        parser.set_defaults({"lr_monitor.logging_interval": "epoch"})
-
-        # add `-n` argument linked with trainer.logger.name for easy cmdline access
-        parser.add_argument(
-            "--name", "-n", dest="name", action="store", default="default_name"
-        )
-        parser.add_argument(
-            "--version", "-v", dest="version", action="store", default="version_0"
-        )
         parser.link_arguments("name", "trainer.logger.init_args.name")
         parser.link_arguments(
             "version", "trainer.logger.init_args.tags", compute_fn=lambda e: [e]
@@ -141,13 +124,13 @@ class RichWandbCLI(LightningCLI):
         prev_sub_dir = sub_dir + (str(i - 1) if (i - 1) else "")
         sub_dir = sub_dir + str(i)
 
-        # prev_log_dir = osp.join(save_dir, name, version, prev_sub_dir)
         prev_log_dir = osp.join(save_dir, name, version, prev_sub_dir)
         with open(osp.join(prev_log_dir, "config.yaml"), "r") as f:
             prev_config = yaml.load(f, Loader=yaml.FullLoader)
         self.config[subcommand]["ckpt_path"] = osp.join(
             prev_config["model_ckpt"]["dirpath"], "last.ckpt"
         )
+
         wandb_run_file = [
             e
             for e in os.listdir(osp.join(prev_log_dir, "wandb", "latest-run"))
@@ -194,15 +177,7 @@ class RichWandbCLI(LightningCLI):
         log_dir = osp.join(save_dir, name, version, sub_dir)
         self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"] = log_dir
 
-        ckpt_root_dirpath = self.config[subcommand]["model_ckpt"]["dirpath"]
-        if ckpt_root_dirpath:
-            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-                ckpt_root_dirpath, log_dir, "checkpoints"
-            )
-        else:
-            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-                log_dir, "checkpoints"
-            )
+        self._update_model_ckpt_dirpath(log_dir)
 
         # Making logger save_dir to prevent wandb using /tmp/wandb
         if not osp.exists(log_dir):
