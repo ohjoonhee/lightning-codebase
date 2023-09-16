@@ -1,17 +1,14 @@
-lightning==2.0.2
-scikit-learn==1.2.2
-typing_extensions==4.5.0  # NECESSARY
+lightning
+scikit-learn
+typing_extensions  # NECESSARY
 
 # jsonargparse[signatures]
-jsonargparse==4.21.1 
-typeshed-client==2.2.0 
-docstring-parser==0.15 
+jsonargparse
+typeshed-client
+docstring-parser
 
 # variable interpolation in configs
-omegaconf==2.2.3
-
-# formatter
-black==23.1.0 
+omegaconf
 
 # optional libs.
 # torchinfo==1.7.2
@@ -23,5 +20,5 @@ black==23.1.0
 # torchvision==0.15.1
 
 # logging
-# wandb==0.15.3
-# tensorboard
+wandb
+tensorboardX
