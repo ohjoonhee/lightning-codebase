@@ -1,8 +1,11 @@
 import os.path as osp
 
-import torch
 from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
-from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.callbacks import (
+    ModelCheckpoint,
+    LearningRateMonitor,
+    EarlyStopping,
+)
 
 
 class RichCLI(LightningCLI):
@@ -19,6 +22,15 @@ class RichCLI(LightningCLI):
 
         parser.add_lightning_class_args(LearningRateMonitor, "lr_monitor")
         parser.set_defaults({"lr_monitor.logging_interval": "epoch"})
+
+        parser.add_lightning_class_args(EarlyStopping, "early_stopping")
+        parser.set_defaults(
+            {
+                "early_stopping.monitor": "val/loss",
+                "early_stopping.mode": "min",
+                "early_stopping.strict": False,
+            }
+        )
 
         # add `-n` argument linked with trainer.logger.name for easy cmdline access
         parser.add_argument(
