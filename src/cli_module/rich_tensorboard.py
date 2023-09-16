@@ -1,6 +1,5 @@
 import os.path as osp
-
-import torch
+import yaml
 
 from lightning.pytorch.callbacks import (
     ModelCheckpoint,
@@ -20,7 +19,7 @@ class RichTensorboardCLI(LightningCLI):
                 "model_ckpt.monitor": "val/loss",
                 "model_ckpt.mode": "min",
                 "model_ckpt.save_last": True,
-                "model_ckpt.filename": "best-{epoch:03d}",
+                "model_ckpt.filename": "best",
             }
         )
 
@@ -43,7 +42,6 @@ class RichTensorboardCLI(LightningCLI):
         parser.add_argument(
             "--version", "-v", dest="version", action="store", default="version_0"
         )
-
 
     def _check_resume(self):
         subcommand = self.config["subcommand"]
@@ -69,8 +67,10 @@ class RichTensorboardCLI(LightningCLI):
         self.config[subcommand]["trainer"]["logger"]["init_args"]["sub_dir"] = sub_dir
 
         prev_log_dir = osp.join(save_dir, name, version, prev_sub_dir)
+        with open(osp.join(prev_log_dir, "config.yaml"), "r") as f:
+            prev_config = yaml.load(f, Loader=yaml.FullLoader)
         self.config[subcommand]["ckpt_path"] = osp.join(
-            prev_log_dir, "checkpoints", "last.ckpt"
+            prev_config["model_ckpt"]["dirpath"], "last.ckpt"
         )
 
     @rank_zero_only
@@ -99,6 +99,12 @@ class RichTensorboardCLI(LightningCLI):
 
         save_dir = osp.join(save_dir, name, version, sub_dir)
 
-        self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-            save_dir, "checkpoints"
-        )
+        ckpt_root_dirpath = self.config[subcommand]["model_ckpt"]["dirpath"]
+        if ckpt_root_dirpath:
+            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
+                ckpt_root_dirpath, save_dir, "checkpoints"
+            )
+        else:
+            self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
+                save_dir, "checkpoints"
+            )

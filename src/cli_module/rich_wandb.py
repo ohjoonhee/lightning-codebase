@@ -1,6 +1,7 @@
 import os
 import os.path as osp
 
+import yaml
 import json
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 import wandb
@@ -61,7 +62,7 @@ class RichWandbCLI(LightningCLI):
                 "model_ckpt.monitor": "val/loss",
                 "model_ckpt.mode": "min",
                 "model_ckpt.save_last": True,
-                "model_ckpt.filename": "best-{epoch:03d}",
+                "model_ckpt.filename": "best",
             }
         )
 
@@ -140,9 +141,12 @@ class RichWandbCLI(LightningCLI):
         prev_sub_dir = sub_dir + (str(i - 1) if (i - 1) else "")
         sub_dir = sub_dir + str(i)
 
+        # prev_log_dir = osp.join(save_dir, name, version, prev_sub_dir)
         prev_log_dir = osp.join(save_dir, name, version, prev_sub_dir)
+        with open(osp.join(prev_log_dir, "config.yaml"), "r") as f:
+            prev_config = yaml.load(f, Loader=yaml.FullLoader)
         self.config[subcommand]["ckpt_path"] = osp.join(
-            prev_log_dir, "checkpoints", "last.ckpt"
+            prev_config["model_ckpt"]["dirpath"], "last.ckpt"
         )
         wandb_run_file = [
             e
@@ -190,7 +194,6 @@ class RichWandbCLI(LightningCLI):
         log_dir = osp.join(save_dir, name, version, sub_dir)
         self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"] = log_dir
 
-        # TODO: add project name to log path 
         ckpt_root_dirpath = self.config[subcommand]["model_ckpt"]["dirpath"]
         if ckpt_root_dirpath:
             self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
