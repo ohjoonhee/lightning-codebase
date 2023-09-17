@@ -91,10 +91,7 @@ class RichWandbCLI(RichCLI):
             self.trainer.logger.experiment.config.update(
                 wandb.helper.parse_config(
                     dict_config,
-                    exclude=(
-                        "rich_progress",
-                        "model_ckpt",
-                    ),  # exclude callbacks config for readability
+                    exclude=(),  # exclude any configs (keys) for readability
                 ),
                 allow_val_change=True,
             )
