@@ -16,7 +16,7 @@ from .rich import RichCLI
 class CleanUpWandbLogger(WandbLogger):
     def __init__(self, clean: bool = True, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.clean = clean
+        self._clean = clean
         self.api = wandb.Api()
 
     @rank_zero_only
@@ -34,11 +34,11 @@ class CleanUpWandbLogger(WandbLogger):
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         super().after_save_checkpoint(checkpoint_callback)
-        if self.clean and self._log_model:
+        if self._clean and self._log_model:
             self._clean_model_artifacts()
 
     def __del__(self):
-        if self.clean and self._log_model:
+        if self._clean and self._log_model:
             self._clean_model_artifacts()
 
 
