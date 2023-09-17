@@ -57,6 +57,15 @@ model_ckpt:
   dirpath: gs://bucket_name/path/for/checkpoints
 ```
 
+#### `AsyncCheckpointIO` Plugins
+You can set async checkpoint saving by providing config as follows.  
+```yaml
+trainer:
+  plugins:
+    - AsyncCheckpointIO
+```
+
+
 
 #### Automatic Batch Size Finder
 Just add `BatchSizeFinder` callbacks in the config
