@@ -104,6 +104,10 @@ class RichWandbCLI(RichCLI):
         subcommand = self.config["subcommand"]
         if subcommand != "fit":
             return subcommand
+
+        if self.config[subcommand]["increment_version"]:
+            return subcommand
+
         save_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"]
         name = self.config[subcommand]["name"]
         version = self.config[subcommand]["version"]
@@ -168,6 +172,9 @@ class RichWandbCLI(RichCLI):
             self.config[subcommand]["trainer"]["logger"]["init_args"][
                 "save_dir"
             ] = save_dir
+
+        if self.config[subcommand]["increment_version"]:
+            version = self._increment_version(save_dir, name)
 
         sub_dir = self._check_resume()
 

@@ -23,6 +23,10 @@ class RichTensorboardCLI(RichCLI):
         subcommand = self.config["subcommand"]
         if subcommand != "fit":
             return
+
+        if self.config[subcommand]["increment_version"]:
+            return
+
         save_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"]
         name = self.config[subcommand]["name"]
         version = self.config[subcommand]["version"]
@@ -56,22 +60,22 @@ class RichTensorboardCLI(RichCLI):
         # Dividing directories into subcommand (e.g. fit, validate, test, etc...)
         subcommand = self.config["subcommand"]
 
-        self.config[subcommand]["trainer"]["logger"]["init_args"]["name"] = self.config[
-            subcommand
-        ]["name"]
-        self.config[subcommand]["trainer"]["logger"]["init_args"][
+        save_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"]
+        name = self.config[subcommand]["trainer"]["logger"]["init_args"][
+            "name"
+        ] = self.config[subcommand]["name"]
+        version = self.config[subcommand]["trainer"]["logger"]["init_args"][
             "version"
-        ] = self.config[subcommand]["version"]
-        self.config[subcommand]["trainer"]["logger"]["init_args"][
+        ] = (
+            self.config[subcommand]["version"]
+            if not self.config[subcommand]["increment_version"]
+            else self._increment_version(save_dir, name)
+        )
+        sub_dir = self.config[subcommand]["trainer"]["logger"]["init_args"][
             "sub_dir"
         ] = subcommand
 
         self._check_resume()
-
-        save_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"]
-        name = self.config[subcommand]["name"]
-        version = self.config[subcommand]["version"]
-        sub_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["sub_dir"]
 
         log_dir = osp.join(save_dir, name, version, sub_dir)
 

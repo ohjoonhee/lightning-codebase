@@ -1,3 +1,4 @@
+import os
 import os.path as osp
 
 from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
@@ -39,6 +40,21 @@ class RichCLI(LightningCLI):
         parser.add_argument(
             "--version", "-v", dest="version", action="store", default="version_0"
         )
+
+        # add `--incremental_version` for sweep versioning, e.g. version_0, version_1, ...
+        # This disables resume feature
+        parser.add_argument("--increment_version", action="store_true", default=False)
+
+    def _increment_version(self, save_dir: str, name: str) -> str:
+        subcommand = self.config["subcommand"]
+        if subcommand is None:
+            return
+
+        i = 0
+        while osp.exists(osp.join(save_dir, name, f"version_{i}")):
+            i += 1
+
+        return f"version_{i}"
 
     def _update_model_ckpt_dirpath(self, logger_log_dir):
         subcommand = self.config["subcommand"]
