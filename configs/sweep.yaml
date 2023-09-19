@@ -1,5 +1,5 @@
 project: debug # wandb project name
-name: dev-wandb-sweep-4 # wandb sweep name displayed in the UI
+name: wandb-sweep # wandb sweep name displayed in the UI
 
 program: src/main.py
 method: bayes
@@ -7,8 +7,13 @@ metric:
   name: val/acc
   goal: maximize
 parameters:
-  data.batch_size:
-    values: [32, 64, 128]
+  optimizer.init_args.lr:
+    distribution: log_uniform
+    min: -4
+    max: 0
+
+  optimizer.class_path:
+    values: ["SGD", "Adam"]
 
 command:
   - ${env}
@@ -18,6 +23,6 @@ command:
   - "--config"
   - "configs/config.yaml" # path to default config file
   - "--name"
-  - "dev-wandb-sweep-4" # name of saved logs
+  - "wandb-sweep" # name of saved logs
   - "--increment_version"
   - ${args}
