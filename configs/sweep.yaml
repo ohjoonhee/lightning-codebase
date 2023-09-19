@@ -1,0 +1,23 @@
+entity: ecstatic-kirch
+project: debug
+
+program: src/main.py
+method: bayes
+metric:
+  name: val/acc
+  goal: maximize
+parameters:
+  name:
+    value: dev-wandb-sweep
+  config:
+    value: configs/config.yaml
+  data.batch_size:
+    values: [32, 64, 128]
+
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - fit
+  - ${args}
+  - "--increment_version"
