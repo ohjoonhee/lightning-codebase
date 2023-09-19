@@ -1,5 +1,5 @@
-entity: ecstatic-kirch
-project: debug
+project: debug # wandb project name
+name: dev-wandb-sweep-4 # wandb sweep name displayed in the UI
 
 program: src/main.py
 method: bayes
@@ -7,10 +7,6 @@ metric:
   name: val/acc
   goal: maximize
 parameters:
-  name:
-    value: dev-wandb-sweep
-  config:
-    value: configs/config.yaml
   data.batch_size:
     values: [32, 64, 128]
 
@@ -19,5 +15,9 @@ command:
   - python3
   - ${program}
   - fit
-  - ${args}
+  - "--config"
+  - "configs/config.yaml" # path to default config file
+  - "--name"
+  - "dev-wandb-sweep-4" # name of saved logs
   - "--increment_version"
+  - ${args}
