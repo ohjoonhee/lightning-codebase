@@ -1,37 +1,82 @@
+from lightning.pytorch.cli import LightningArgumentParser
+from lightning.pytorch.callbacks import ModelCheckpoint
+
 import os
 import os.path as osp
-import inspect
 
+import yaml
 import json
 import wandb
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.cli import LightningArgumentParser
-
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 from .rich import RichCLI
+
+
+class CleanUpWandbLogger(WandbLogger):
+    def __init__(self, clean: bool = True, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._clean = clean
+        self.api = wandb.Api()
+
+    @rank_zero_only
+    def _clean_model_artifacts(self) -> None:
+        url = f"{self.experiment.entity}/{self.experiment.project}/{self.version}"
+        run = self.api.run(url)
+        model_artifacts = [
+            artifact
+            for artifact in run.logged_artifacts()
+            if artifact.type == "model" and artifact.state == "COMMITTED"
+        ]
+        for artifact in model_artifacts:
+            if not artifact.aliases:
+                artifact.delete()
+
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
+        super().after_save_checkpoint(checkpoint_callback)
+        if self._clean and self._log_model:
+            self._clean_model_artifacts()
+
+    def __del__(self):
+        if self._clean and self._log_model:
+            self._clean_model_artifacts()
 
 
 class RichWandbCLI(RichCLI):
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         super().add_arguments_to_parser(parser)
-
         parser.set_defaults(
             {
                 "trainer.logger": {
-                    "class_path": "lightning.pytorch.loggers.WandbLogger",
+                    "class_path": "CleanUpWandbLogger",
                     "init_args": {
                         "project": "debug",
                         "save_dir": "logs",
+                        # "log_model": "all",
+                        "clean": True,
                     },
                 },
             }
         )
+
         parser.link_arguments("name", "trainer.logger.init_args.name")
         parser.link_arguments(
             "version", "trainer.logger.init_args.tags", compute_fn=lambda e: [e]
         )
 
+    @rank_zero_only
     def before_fit(self):
+        def _parse_config(s):
+            try:
+                return vars(s)
+            except:
+                if hasattr(s, "__repr__"):
+                    return repr(s)
+                elif hasattr(s, "__str__"):
+                    return str(s)
+                else:
+                    return None
+
         if not isinstance(self.trainer.logger, WandbLogger):
             print("WandbLogger not found! Skipping config upload...")
 
@@ -41,43 +86,28 @@ class RichWandbCLI(RichCLI):
         else:
             subcommand = self.config["subcommand"]
             dict_config = json.loads(
-                json.dumps(self.config[subcommand], default=lambda s: vars(s))
+                json.dumps(self.config[subcommand], default=_parse_config)
             )
             self.trainer.logger.experiment.config.update(
                 wandb.helper.parse_config(
                     dict_config,
-                    exclude=(
-                        "rich_progress",
-                        "model_ckpt",
-                    ),  # exclude callbacks config for readability
+                    exclude=(),  # exclude any configs (keys) for readability
                 ),
                 allow_val_change=True,
             )
             print("Config uploaded to Wandb!!!")
 
-            run_id = self.trainer.logger.version
-            artifacts = wandb.Artifact(f"src-{run_id}", type="source-code")
-
-            if hasattr(self.model, "net"):
-                net_module = self.model.net.__class__
-                net_filepath = osp.abspath(inspect.getsourcefile(net_module))
-                artifacts.add_file(net_filepath, f"src-{run_id}/net.py")
-                print("Model.net source code added to artifacts!!!")
-
-            if hasattr(self.datamodule, "transforms"):
-                transform_module = self.datamodule.transforms.__class__
-                transform_filepath = osp.abspath(
-                    inspect.getsourcefile(transform_module)
-                )
-                artifacts.add_file(transform_filepath, f"src-{run_id}/transforms.py")
-                print("Transforms source code added to artifacts!!!")
-
-            wandb.log_artifact(artifacts)
+            self.trainer.logger.experiment.log_code("./src")
+            print("Code artifacts uploaded to Wandb!!!")
 
     def _check_resume(self):
         subcommand = self.config["subcommand"]
         if subcommand != "fit":
             return subcommand
+
+        if self.config[subcommand]["increment_version"]:
+            return subcommand
+
         save_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"]
         name = self.config[subcommand]["name"]
         version = self.config[subcommand]["version"]
@@ -96,9 +126,12 @@ class RichWandbCLI(RichCLI):
         sub_dir = sub_dir + str(i)
 
         prev_log_dir = osp.join(save_dir, name, version, prev_sub_dir)
+        with open(osp.join(prev_log_dir, "config.yaml"), "r") as f:
+            prev_config = yaml.load(f, Loader=yaml.FullLoader)
         self.config[subcommand]["ckpt_path"] = osp.join(
-            prev_log_dir, "checkpoints", "last.ckpt"
+            prev_config["model_ckpt"]["dirpath"], "last.ckpt"
         )
+
         wandb_run_file = [
             e
             for e in os.listdir(osp.join(prev_log_dir, "wandb", "latest-run"))
@@ -118,6 +151,7 @@ class RichWandbCLI(RichCLI):
 
         return sub_dir
 
+    @rank_zero_only
     def before_instantiate_classes(self) -> None:
         if "subcommand" not in self.config:
             return
@@ -139,14 +173,15 @@ class RichWandbCLI(RichCLI):
                 "save_dir"
             ] = save_dir
 
+        if self.config[subcommand]["increment_version"]:
+            version = self._increment_version(save_dir, name)
+
         sub_dir = self._check_resume()
 
         log_dir = osp.join(save_dir, name, version, sub_dir)
         self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"] = log_dir
 
-        self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
-            log_dir, "checkpoints"
-        )
+        self._update_model_ckpt_dirpath(log_dir)
 
         # Making logger save_dir to prevent wandb using /tmp/wandb
         if not osp.exists(log_dir):
