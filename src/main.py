@@ -17,7 +17,7 @@ except:
 
 
 import models
-import agents
+import module
 
 
 def cli_main():

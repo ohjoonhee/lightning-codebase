@@ -70,4 +70,3 @@ class RichCLI(LightningCLI):
             self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(
                 logger_log_dir, "checkpoints"
             )
-

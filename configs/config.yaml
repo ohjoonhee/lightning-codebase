@@ -1,6 +1,6 @@
 # lightning.pytorch==2.0.0
 name: dqn-cartpole
-version: map_ds
+version: rehab1
 
 seed_everything: 42
 trainer:
@@ -15,11 +15,10 @@ model:
       class_path: torch.optim.Adam
       init_args:
         lr: 1e-2
-    env: 
+    env:
       class_path: envs.generator.GymEnvGenerator
       dict_kwargs:
         id: CartPole-v1
         render_mode: rgb_array
-        
-ckpt_path: null
 
+ckpt_path: null
