@@ -16,7 +16,7 @@ except:
     CLI = RichCLI
 
 
-import models
+import model
 import module
 
 

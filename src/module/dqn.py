@@ -17,7 +17,7 @@ import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
 from module.offpolicy import OffPolicyAgent
-from models.mlp import MLP
+from model.mlp import MLP
 from utils.replay_buffer import ReplayBuffer, Experience
 from utils.rl_dataset import RLDataset, MapRLDataset
 
