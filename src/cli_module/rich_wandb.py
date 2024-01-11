@@ -174,7 +174,13 @@ class RichWandbCLI(RichCLI):
             ] = save_dir
 
         if self.config[subcommand]["increment_version"]:
+            logger_tags = self.config[subcommand]["trainer"]["logger"]["init_args"][
+                "tags"
+            ]
+            assert version in logger_tags
+            logger_tags.remove(version)
             version = self._increment_version(save_dir, name)
+            logger_tags.append(version)
 
         sub_dir = self._check_resume()
 
