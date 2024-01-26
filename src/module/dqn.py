@@ -146,14 +146,14 @@ class DQNModule(L.LightningModule):
 
         record_env.close()
 
-        # if isinstance(self.logger, WandbLogger):
-        #     video_file_list = glob.glob(osp.join(save_dir, "*.mp4"))
-        #     video_file = (
-        #         video_file_list[-2] if len(video_file_list) > 1 else video_file_list[0]
-        #     )
-        #     self.logger.experiment.log(
-        #         {"video": wandb.Video(video_file, fps=4, format="gif")}
-        #     )
+        if isinstance(self.logger, WandbLogger):
+            video_file_list = glob.glob(osp.join(save_dir, "*.mp4"))
+            video_file = (
+                video_file_list[-2] if len(video_file_list) > 1 else video_file_list[0]
+            )
+            self.logger.experiment.log(
+                {"videos": wandb.Video(video_file, fps=4, format="gif")}
+            )
 
     def __dataloader(self):
         dataset = MapRLDataset(self.buffer, self.episode_length)
