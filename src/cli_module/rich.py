@@ -14,7 +14,7 @@ class RichCLI(LightningCLI):
         parser.add_lightning_class_args(ModelCheckpoint, "model_ckpt")
         parser.set_defaults(
             {
-                "model_ckpt.monitor": "val/loss",
+                "model_ckpt.monitor": "episode_reward",
                 "model_ckpt.mode": "min",
                 "model_ckpt.save_last": True,
                 "model_ckpt.filename": "best",
