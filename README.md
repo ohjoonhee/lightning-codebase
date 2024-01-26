@@ -12,52 +12,17 @@ There are some added arguments related to `wandb`.
 * `--name` or `-n`: Name of the run, displayed in `wandb`
 * `--version` or `-v`: Version of the run, displayed in `wandb` as tags
 
-Basic cmdline usage is as follows.  
-We assume cwd is project root dir.
-
-### `fit` stage 
+Basic cmdline usage is same with the `main` branch.  
 ```bash
-python src/main.py fit -c configs/config.yaml -n debug-fit-run -v debug-version
+python src/main.py fit -c configs/config.yaml -n my_exp_name -v my_trial_version
 ```
-If using `wandb` for logging, change `"project"` key in `cli_module/rich_wandb.py`
+The followings are `rl` branch specific usages.  
 
-#### Automatic Batch Size Finder
-Just add `BatchSizeFinder` callbacks in the config
+## Log Gym Env
+Simply add the following arguments to `config.yaml` (only if `wandb` is used).  
 ```yaml
 trainer:
-  callbacks:
-    - class_path: BatchSizeFinder
+  logger:
+    init_args:
+      monitor_gym: true
 ```
-Or add them in the cmdline.
-```bash
-python src/main.py fit -c configs/config.yaml --trainer.callbacks+=BatchSizeFinder
-```
-
-##### NEW! `tune.py` for lr_find and batch size find
-```bash
-python src/tune.py -c configs/config.yaml
-```
-NOTE: No subcommand in cmdline
-
-#### Resume
-Basically all logs are stored in `logs/${name}/${version}/${job_type}` where `${name}` and `${version}` are configured in yaml file or cmdline. 
-`{job_type}` can be one of `fit`, `test`, `validate`, etc.
-
-```
-   
-  
-
-### `test` stage
-```bash
-python src/main.py test -c configs/config.yaml -n debug-test-run -v debug-version --ckpt_path YOUR_CKPT_PATH
-```
-
-
-
-
-## TODO
-* Check pretrained weight loading
-* Consider multiple optimizer using cases (i.e. GAN)
-* Add instructions in README (on-going)
-* Clean code
- 
