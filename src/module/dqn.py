@@ -40,7 +40,7 @@ class DQNModule(L.LightningModule):
         eps_last_frame: int = 1000,
         eps_start: float = 1.0,
         eps_end: float = 0.01,
-        episode_length: int = 200,
+        episode_length: int = 1000,
         warm_start_steps: int = 1000,
     ) -> None:
         super().__init__()
@@ -68,6 +68,7 @@ class DQNModule(L.LightningModule):
         self.agent = OffPolicyAgent(self.env, self.buffer)
         self.total_reward = 0
         self.episode_reward = 0
+        self.episode_count = 0
         self.populate(self.warm_start_steps)
 
     def configure_optimizers(self) -> Any:
@@ -116,11 +117,12 @@ class DQNModule(L.LightningModule):
         if done:
             self.total_reward += self.episode_reward
             self.episode_reward = 0
+            self.episode_count += 1
 
         if self.global_step % self.sync_rate == 0:
             self.target_net.load_state_dict(self.net.state_dict())
 
-        self.log_dict({"reward": reward, "loss": loss})
+        self.log_dict({"reward": reward, "loss": loss, "episode": self.episode_count})
 
         self.log("total_reward", self.total_reward, prog_bar=True)
         self.log("steps", self.global_step, logger=False, prog_bar=True)
@@ -136,7 +138,7 @@ class DQNModule(L.LightningModule):
         save_dir = osp.join(self.save_dir, "videos", f"video_{self.current_epoch}")
 
         record_env = RecordVideo(self.env, video_folder=save_dir, disable_logger=True)
-        agent = OffPolicyAgent(record_env, self.buffer)
+        agent = OffPolicyAgent(record_env, ReplayBuffer(1))
         agent.reset()
 
         for _ in range(self.episode_length):
