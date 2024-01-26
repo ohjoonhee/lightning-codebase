@@ -1,10 +1,10 @@
 # lightning.pytorch==2.0.0
-name: dqn-cartpole
+name: dqn-lunarlander
 version: v0
 
 seed_everything: 42
 trainer:
-  max_epochs: 300
+  max_epochs: 1000
   # val_check_interval: 50
   check_val_every_n_epoch: 50
   # logger:
@@ -18,8 +18,10 @@ model:
       class_path: torch.optim.Adam
       init_args:
         lr: 1e-2
-    env: CartPole-v1
+    env: LunarLander-v2
     env_kwargs:
       render_mode: rgb_array
+    batch_size: 64
+    eps_last_frame: 10000
 
 ckpt_path: null

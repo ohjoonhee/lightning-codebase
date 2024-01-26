@@ -6,7 +6,7 @@ from torch.utils.data import IterableDataset
 from torch.utils.data import Dataset
 
 
-class RLDataset(IterableDataset):
+class IterableRLDataset(IterableDataset):
     def __init__(self, buffer: ReplayBuffer, sample_size: int = 200) -> None:
         super().__init__()
 
@@ -19,7 +19,7 @@ class RLDataset(IterableDataset):
             yield state[i], action[i], reward[i], done[i], next_state[i]
 
 
-class MapRLDataset(Dataset):
+class RLDataset(Dataset):
     def __init__(self, buffer: ReplayBuffer, sample_size: int = 200) -> None:
         super().__init__()
 
