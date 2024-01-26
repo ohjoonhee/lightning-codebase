@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional, Any
 import gymnasium as gym
 from utils.replay_buffer import Experience, ReplayBuffer
 
@@ -8,14 +8,17 @@ from torch import nn
 
 
 class OffPolicyAgent:
-    def __init__(self, env: gym.Env, replay_buffer: ReplayBuffer) -> None:
+    def __init__(
+        self,
+        env: gym.Env,
+        replay_buffer: ReplayBuffer,
+    ) -> None:
         self.env = env
         self.replay_buffer = replay_buffer
         self.reset()
-        self.state, info = self.env.reset()
 
-    def reset(self) -> None:
-        self.state, info = self.env.reset()
+    def reset(self, *, seed=None, options=None) -> None:
+        self.state, info = self.env.reset(seed=seed, options=options)
 
     def get_action(self, net: nn.Module, epsilon: float, device: str = "cpu") -> int:
         if np.random.random() < epsilon:

@@ -6,18 +6,21 @@ from lightning.pytorch.cli import OptimizerCallable
 
 import os
 import os.path as osp
+import glob
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
 import lightning as L
+from lightning.pytorch.loggers import WandbLogger
+import wandb
 
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
 from module.offpolicy import OffPolicyAgent
-from model.mlp import MLP
+from policy.mlp import MLP
 from utils.replay_buffer import ReplayBuffer, Experience
 from utils.rl_dataset import RLDataset, MapRLDataset
 
@@ -27,7 +30,9 @@ class DQNModule(L.LightningModule):
         self,
         optimizer: OptimizerCallable = torch.optim.Adam,
         batch_size: int = 16,
-        env: Optional[gym.Env] = None,
+        env: Optional[str] = None,
+        env_kwargs: Optional[dict[str, Any]] = None,
+        reset_options: Optional[dict[str, Any]] = None,
         gamma: float = 0.99,
         sync_rate: int = 10,
         replay_size: int = 1000,
@@ -39,21 +44,31 @@ class DQNModule(L.LightningModule):
         warm_start_steps: int = 1000,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=["env"])
         self.optimizer = optimizer
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.sync_rate = sync_rate
+        self.replay_size = replay_size
+        self.warm_start_size = warm_start_size
+        self.eps_last_frame = eps_last_frame
+        self.eps_start = eps_start
+        self.eps_end = eps_end
+        self.episode_length = episode_length
+        self.warm_start_steps = warm_start_steps
 
-        self.env = env
+        self.env: gym.Env = gym.make(env, **env_kwargs)
+        self.reset_options = reset_options
         obs_size = self.env.observation_space.shape[0]
         n_actions = self.env.action_space.n
 
         self.net = MLP(obs_size, n_actions)
         self.target_net = MLP(obs_size, n_actions)
 
-        self.buffer = ReplayBuffer(self.hparams.replay_size)
+        self.buffer = ReplayBuffer(self.replay_size)
         self.agent = OffPolicyAgent(self.env, self.buffer)
         self.total_reward = 0
         self.episode_reward = 0
-        self.populate(self.hparams.warm_start_steps)
+        self.populate(self.warm_start_steps)
 
     def configure_optimizers(self) -> Any:
         opt = self.optimizer(self.net.parameters())
@@ -75,7 +90,7 @@ class DQNModule(L.LightningModule):
             q_next[d] = 0.0
             q_next = q_next.detach()
 
-        expected_q = q_next * self.hparams.gamma + r
+        expected_q = q_next * self.gamma + r
 
         return nn.MSELoss()(q, expected_q)
 
@@ -89,9 +104,7 @@ class DQNModule(L.LightningModule):
 
     def training_step(self, batch: Tuple[Tensor, Tensor], nb_batch):
         device = self.get_device(batch)
-        epsilon = self.get_epsilon(
-            self.hparams.eps_start, self.hparams.eps_end, self.hparams.eps_last_frame
-        )
+        epsilon = self.get_epsilon(self.eps_start, self.eps_end, self.eps_last_frame)
         self.log("epsilon", epsilon)
 
         reward, done = self.agent.play_step(self.net, epsilon, device=device)
@@ -104,7 +117,7 @@ class DQNModule(L.LightningModule):
             self.total_reward += self.episode_reward
             self.episode_reward = 0
 
-        if self.global_step % self.hparams.sync_rate == 0:
+        if self.global_step % self.sync_rate == 0:
             self.target_net.load_state_dict(self.net.state_dict())
 
         self.log_dict({"reward": reward, "loss": loss})
@@ -126,19 +139,27 @@ class DQNModule(L.LightningModule):
         agent = OffPolicyAgent(record_env, self.buffer)
         agent.reset()
 
-        for _ in range(1000):
+        for _ in range(self.episode_length):
             reward, done = agent.play_step(self.net, epsilon=0.0, device=device)
             if done:
                 agent.reset()
 
         record_env.close()
 
+        # if isinstance(self.logger, WandbLogger):
+        #     video_file_list = glob.glob(osp.join(save_dir, "*.mp4"))
+        #     video_file = (
+        #         video_file_list[-2] if len(video_file_list) > 1 else video_file_list[0]
+        #     )
+        #     self.logger.experiment.log(
+        #         {"video": wandb.Video(video_file, fps=4, format="gif")}
+        #     )
+
     def __dataloader(self):
-        # dataset = RLDataset(self.buffer, self.hparams.episode_length)
-        dataset = MapRLDataset(self.buffer, self.hparams.episode_length)
+        dataset = MapRLDataset(self.buffer, self.episode_length)
         dataloader = DataLoader(
             dataset=dataset,
-            batch_size=self.hparams.batch_size,
+            batch_size=self.batch_size,
             shuffle=True,
             num_workers=4,
         )
