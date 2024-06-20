@@ -1,5 +1,5 @@
 # Intro
-This is to-go pytorch template utilizing [lighting](https://github.com/Lightning-AI/lightning) and [wandb](https://github.com/wandb/wandb). 
+This is to-go pytorch template utilizing [lightning](https://github.com/Lightning-AI/lightning) and [wandb](https://github.com/wandb/wandb). 
 This template uses `Lightning CLI` for config management. 
 It follows most of [Lightning CLI docs](https://lightning.ai/docs/pytorch/latest/api_references.html#cli) but, integrated with `wandb`.
 Since `Lightning CLI` instantiate classes on-the-go, there were some work-around while integrating `WandbLogger` to the template.
