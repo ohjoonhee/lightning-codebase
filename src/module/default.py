@@ -6,20 +6,19 @@ import lightning as L
 from torchmetrics import Accuracy
 
 
-class LitCifar10(L.LightningModule):
+class DefaultModule(L.LightningModule):
     def __init__(
         self,
         net: nn.Module,
-        loss_module: nn.Module,
-        # metric_module: nn.Module,
+        criterion: nn.Module,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=["net", "loss_module", "metric_module"])
+        self.save_hyperparameters(ignore=["net", "criterion"])
 
         self.net = net
 
-        self.loss_module = loss_module
-        self.metric_module = Accuracy(task="multiclass", num_classes=10)
+        self.criterion = criterion
+        self.accuracy = Accuracy(task="multiclass", num_classes=10)
 
     def forward(self, x):
         return self.net(x)
@@ -28,8 +27,8 @@ class LitCifar10(L.LightningModule):
         img, labels = batch
         pred = self(img)
 
-        loss = self.loss_module(pred, labels)
-        self.log("train/loss", loss.item())
+        loss = self.criterion(pred, labels)
+        self.log("train_loss", loss.item())
 
         return loss
 
@@ -37,15 +36,23 @@ class LitCifar10(L.LightningModule):
         img, labels = batch
         pred = self(img)
 
-        loss = self.loss_module(pred, labels)
-        self.log("val/loss", loss.item(), on_epoch=True, on_step=False)
+        loss = self.criterion(pred, labels)
+        acc = self.accuracy(pred, labels)
 
-        acc = self.metric_module(pred, labels)
-        self.log("val/acc", acc, on_epoch=True, on_step=False, prog_bar=True)
+        self.log_dict(
+            {
+                "val_loss": loss.item(),
+                "val_acc": acc,
+            },
+            on_epoch=True,
+            on_step=False,
+        )
+
+        return
 
     def test_step(self, batch, batch_idx):
         img, labels = batch
         pred = self(img)
 
-        acc = self.metric_module(pred, labels)
-        self.log("test/acc", acc)
+        acc = self.accuracy(pred, labels)
+        self.log("test_acc", acc)

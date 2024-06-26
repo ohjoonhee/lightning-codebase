@@ -1,25 +1,24 @@
 # lightning.pytorch==2.0.0
-# name: dev-refactor-wnb
-name: dev-incver-tb
-version: v0
+name: your_experiment_run_name
+version: your_version
 
 seed_everything: 42
 trainer:
   accelerator: gpu
   precision: 16-mixed
-  max_epochs: 100
+  max_epochs: 300
   plugins:
     - AsyncCheckpointIO
 
 model:
-  class_path: LitCifar10
+  class_path: DefaultModule
   init_args:
     net:
       class_path: Cifar10Resnet18
       init_args:
         num_classes: 10
 
-    loss_module:
+    criterion:
       class_path: CrossEntropyLoss
 
 data:
@@ -42,13 +41,16 @@ lr_scheduler:
   class_path: CosineAnnealingLR
   init_args:
     T_max: ${trainer.max_epochs}
+
+early_stopping:
+  monitor: val/acc
+  patience: 1000
+  mode: max
+
+model_ckpt:
+  # dirpath: "gs://ecstatic-kirch-iqa-dacon"
+  monitor: val_acc
+  mode: max
+  filename: "best-{epoch:02d}-{val_acc:.4f}"
 # ckpt_path: logs/debug-resume/version_0/fit/checkpoints/last.ckpt
 
-# early_stopping:
-#   monitor: val/acc
-#   patience: 10
-#   mode: max
-
-# min_delta: 100.0
-# model_ckpt:
-#   dirpath: "gs://ecstatic-kirch-iqa-dacon"
