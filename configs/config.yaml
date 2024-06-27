@@ -11,7 +11,7 @@ trainer:
     - AsyncCheckpointIO
 
 model:
-  class_path: DefaultModule
+  class_path: DefaultModel
   init_args:
     net:
       class_path: Cifar10Resnet18

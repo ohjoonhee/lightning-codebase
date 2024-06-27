@@ -12,7 +12,7 @@ finally:
     pass
 
 
-class DefaultModule(L.LightningModule):
+class DefaultModel(L.LightningModule):
     def __init__(
         self,
         net: nn.Module,

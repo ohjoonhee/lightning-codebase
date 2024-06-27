@@ -22,8 +22,8 @@ except:
 
 
 import dataset
+import net
 import model
-import module
 import transforms
 
 
