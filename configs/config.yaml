@@ -1,5 +1,5 @@
 # lightning.pytorch==2.0.0
-name: your_experiment_run_name
+name: your_experiment_name
 version: your_version
 
 seed_everything: 42
@@ -20,6 +20,8 @@ model:
 
     criterion:
       class_path: CrossEntropyLoss
+
+    vis_per_batch: 10
 
 data:
   class_path: Cifar10DataModule
