@@ -57,10 +57,20 @@ class RichCLI(LightningCLI):
         return f"version_{i}"
 
     def _update_model_ckpt_dirpath(self, logger_log_dir):
-        subcommand = self.config["subcommand"]
-        if subcommand is None:
+        if "subcommand" not in self.config:
+            # ckpt_root_dirpath usually set with gs:// or s3://
+            ckpt_root_dirpath = self.config["model_ckpt"]["dirpath"]
+            if ckpt_root_dirpath:
+                self.config["model_ckpt"]["dirpath"] = osp.join(
+                    ckpt_root_dirpath, logger_log_dir, "checkpoints"
+                )
+            else:
+                self.config["model_ckpt"]["dirpath"] = osp.join(
+                    logger_log_dir, "checkpoints"
+                )
             return
 
+        subcommand = self.config["subcommand"]
         ckpt_root_dirpath = self.config[subcommand]["model_ckpt"]["dirpath"]
         if ckpt_root_dirpath:
             self.config[subcommand]["model_ckpt"]["dirpath"] = osp.join(

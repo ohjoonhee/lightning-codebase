@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 import os
 import torch
 import lightning as L
+from lightning.pytorch.cli import ArgsType
 from argparse import ArgumentError
 
 try:
@@ -27,7 +28,7 @@ import model
 import transforms
 
 
-def cli_main():
+def cli_main(args: ArgsType = None, run: bool = True):
     torch.set_float32_matmul_precision("medium")
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
@@ -42,6 +43,8 @@ def cli_main():
             },
             subclass_mode_model=True,
             subclass_mode_data=True,
+            args=args,
+            run=run,
         )
     except ArgumentError as e:
         try:
@@ -55,11 +58,15 @@ def cli_main():
                     "exit_on_error": False,
                 },
                 subclass_mode_model=True,
+                args=args,
+                run=run,
             )
         except Exception as e:
             raise e from None
     except Exception as e:
         raise e
+
+    return cli
 
 
 if __name__ == "__main__":
