@@ -15,9 +15,9 @@ omegaconf
 # torchaudio==2.0.1
 
 # vision libs.
-# albumentations==1.3.0
-# opencv-python-headless==4.7.0.72
-# torchvision==0.15.1
+# albumentations
+opencv-python-headless
+torchvision
 
 # logging
 wandb
