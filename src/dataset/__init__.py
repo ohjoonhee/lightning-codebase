@@ -1,1 +1,1 @@
-from . import cifar10
+from . import speech_commands

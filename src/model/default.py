@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from torch import nn
 
@@ -17,7 +19,9 @@ class DefaultModel(L.LightningModule):
         self,
         net: nn.Module,
         criterion: nn.Module,
+        num_classes: int,
         vis_per_batch: int,
+        vis_batches: Optional[int] = None,
     ) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=["net", "criterion"])
@@ -25,8 +29,10 @@ class DefaultModel(L.LightningModule):
         self.net = net
         self.criterion = criterion
         self.vis_per_batch = vis_per_batch
+        self.vis_batches = vis_batches if vis_batches is not None else float("inf")
+        self.num_classes = num_classes
 
-        self.accuracy = Accuracy(task="multiclass", num_classes=10)
+        self.accuracy = Accuracy(task="multiclass", num_classes=self.num_classes)
 
     def forward(self, x):
         return self.net(x)
@@ -37,22 +43,14 @@ class DefaultModel(L.LightningModule):
         self.is_wandb = isinstance(self.logger, WandbLogger)
         self.vis_per_batch = self.vis_per_batch if self.is_wandb else 0
         if self.vis_per_batch:
-            self.ID2CLS = [
-                "airplane",
-                "automobile",
-                "bird",
-                "cat",
-                "deer",
-                "dog",
-                "frog",
-                "horse",
-                "ship",
-                "truck",
-            ]
+            if hasattr(self.trainer.datamodule, "ID2CLS"):
+                self.ID2CLS = self.trainer.datamodule.ID2CLS
+            else:
+                self.ID2CLS = list(range(self.num_classes))
 
     def training_step(self, batch, batch_idx):
-        img, labels = batch
-        pred = self(img)
+        waveforms, labels = batch
+        pred = self(waveforms)
 
         loss = self.criterion(pred, labels)
         self.log("train_loss", loss.item())
@@ -60,11 +58,12 @@ class DefaultModel(L.LightningModule):
         return loss
 
     def on_validation_epoch_start(self) -> None:
-        self.table = wandb.Table(columns=["img", "label", "pred"])
+        if self.vis_per_batch:
+            self.table = wandb.Table(columns=["audio", "label", "pred"])
 
     def validation_step(self, batch, batch_idx):
-        img, labels = batch
-        pred = self(img)
+        waveforms, labels = batch
+        pred = self(waveforms)
 
         loss = self.criterion(pred, labels)
         acc = self.accuracy(pred, labels)
@@ -78,20 +77,20 @@ class DefaultModel(L.LightningModule):
             on_step=False,
         )
 
-        if self.vis_per_batch:
-            self.visualize_preds(img, labels, pred)
+        if self.vis_per_batch and batch_idx < self.vis_batches:
+            self.visualize_preds(waveforms, labels, pred)
 
-    def visualize_preds(self, img, labels, pred):
-        for i in range(min(len(img), self.vis_per_batch)):
+    def visualize_preds(self, waveforms, labels, pred):
+        for i in range(min(len(waveforms), self.vis_per_batch)):
             self.table.add_data(
-                wandb.Image(img[i].permute(1, 2, 0).cpu().numpy()),
+                wandb.Audio(waveforms[i].squeeze().cpu().numpy(), sample_rate=16000),
                 self.ID2CLS[labels[i].item()],
                 self.ID2CLS[pred[i].argmax(-1).item()],
             )
 
     def on_validation_epoch_end(self) -> None:
         if self.vis_per_batch:
-            self.logger.experiment.log({"val_preds": self.table})
+            self.logger.experiment.log({"val_samples": self.table})
 
     def test_step(self, batch, batch_idx):
         img, labels = batch
