@@ -61,7 +61,7 @@ class RichWandbCLI(RichCLI):
 
         parser.link_arguments("name", "trainer.logger.init_args.name")
         parser.link_arguments(
-            "version", "trainer.logger.init_args.tags", compute_fn=lambda e: [e]
+            "version", "trainer.logger.init_args.tags", compute_fn=lambda e: [e[:64]]
         )
 
     @rank_zero_only
@@ -154,7 +154,46 @@ class RichWandbCLI(RichCLI):
     @rank_zero_only
     def before_instantiate_classes(self) -> None:
         if "subcommand" not in self.config:
+            # Dividing directories into subcommand (e.g. fit, validate, test, etc...)
+            save_dir = self.config["trainer"]["logger"]["init_args"]["save_dir"]
+            name = self.config["name"]
+            version = self.config["version"]
+
+            # check if save_dir already contains name/version/subcommand
+            if name in save_dir:
+                assert version in save_dir
+
+                paths = save_dir.split(os.sep)
+                name_idx = paths.index(name)
+
+                save_dir = osp.join(*paths[:name_idx])
+                self.config["trainer"]["logger"]["init_args"]["save_dir"] = save_dir
+
+            if self.config["increment_version"]:
+                logger_tags = self.config["trainer"]["logger"]["init_args"]["tags"]
+                assert version in logger_tags
+                logger_tags.remove(version)
+                version = self._increment_version(save_dir, name)
+                logger_tags.append(version)
+
+            # sub_dir = self._check_resume()
+            sub_dir = "fit"
+
+            log_dir = osp.join(save_dir, name, version, sub_dir)
+            self.config["trainer"]["logger"]["init_args"]["save_dir"] = log_dir
+
+            self._update_model_ckpt_dirpath(log_dir)
+
+            # Making logger save_dir to prevent wandb using /tmp/wandb
+            if not osp.exists(log_dir):
+                os.makedirs(log_dir)
+
+            # Specifying job_type of wandb.init() for quick grouping
+            # self.config["trainer"]["logger"]["init_args"].tags.append(
+            #     subcommand
+            # )
             return
+
         # Dividing directories into subcommand (e.g. fit, validate, test, etc...)
         subcommand = self.config["subcommand"]
         save_dir = self.config[subcommand]["trainer"]["logger"]["init_args"]["save_dir"]
