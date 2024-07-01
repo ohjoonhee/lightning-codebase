@@ -12,12 +12,15 @@ omegaconf
 
 # optional libs.
 # torchinfo==1.7.2
-# torchaudio==2.0.1
+
+# audio libs.
+torchaudio
+librosa
 
 # vision libs.
 # albumentations
-opencv-python-headless
-torchvision
+# opencv-python-headless
+# torchvision
 
 # logging
 wandb
