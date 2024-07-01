@@ -19,13 +19,13 @@ import wandb
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
-from module.offpolicy import OffPolicyAgent
+from model.offpolicy import OffPolicyAgent
 from policy.mlp import MLP
 from utils.replay_buffer import ReplayBuffer, Experience
 from utils.rl_dataset import IterableRLDataset, RLDataset
 
 
-class DQNModule(L.LightningModule):
+class DQNModel(L.LightningModule):
     def __init__(
         self,
         optimizer: OptimizerCallable = torch.optim.Adam,

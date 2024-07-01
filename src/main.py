@@ -17,7 +17,7 @@ except:
 
 
 import policy
-import module
+import model
 
 
 def cli_main():

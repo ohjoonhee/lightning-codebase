@@ -10,7 +10,7 @@ from cli_module.tune import TuneCLI
 
 import dataset
 import policy
-import module
+import model
 import transforms
 
 
