@@ -1,16 +1,38 @@
-from typing import Union
+from pathlib import Path
+from typing import Union, Optional
 
-import numpy as np
 
 import torch
+import torchaudio
 from torch.utils.data import Subset, DataLoader
-from torchaudio.datasets import SPEECHCOMMANDS
 
 
 import lightning as L
 from lightning.pytorch.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
+from torchaudio.datasets.speechcommands import FOLDER_IN_ARCHIVE, URL
 
 from transforms.base import BaseTransforms
+
+
+class SPEECHCOMMANDS(torchaudio.datasets.SPEECHCOMMANDS):
+    def __init__(
+        self,
+        root: Union[str, Path],
+        url: str = URL,
+        folder_in_archive: str = FOLDER_IN_ARCHIVE,
+        download: bool = False,
+        subset: Optional[str] = None,
+        transform: Optional[callable] = None,
+    ) -> None:
+        super().__init__(root, url, folder_in_archive, download, subset)
+        self.transform = transform
+
+    def __getitem__(self, n: int) -> torch.Tuple[Union[torch.Tensor, int, str]]:
+        e = super().__getitem__(n)
+        if self.transform is not None:
+            e = self.transform(e)
+
+        return e
 
 
 class SpeechCommandsDataModule(L.LightningDataModule):
@@ -74,14 +96,24 @@ class SpeechCommandsDataModule(L.LightningDataModule):
     def setup(self, stage: str) -> None:
         if stage in ["fit", "validate"]:
             self.train_dataset = SPEECHCOMMANDS(
-                self.root, download=True, subset="training"
+                self.root,
+                download=True,
+                subset="training",
+                transform=self.train_transform,
             )
             self.val_dataset = SPEECHCOMMANDS(
-                self.root, download=True, subset="validation"
+                self.root,
+                download=True,
+                subset="validation",
+                transform=self.val_transform,
             )
+
         else:
             self.test_dataset = SPEECHCOMMANDS(
-                self.root, download=True, subset="testing"
+                self.root,
+                download=True,
+                subset="testing",
+                transform=self.test_transform,
             )
 
     def _collate_fn(self, batch):
