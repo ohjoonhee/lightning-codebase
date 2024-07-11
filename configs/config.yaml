@@ -1,14 +1,19 @@
 # lightning.pytorch==2.0.0
-name: your_experiment_name
-version: your_version
+name: my_experiment
+version: my_version
 
 seed_everything: 42
 trainer:
-  accelerator: gpu
+  accelerator: auto
   precision: 16-mixed
   max_epochs: 300
   plugins:
     - AsyncCheckpointIO
+  callbacks:
+    - class_path: WandbAlert
+      init_args:
+        monitor: ${model_ckpt.monitor}
+        mode: ${model_ckpt.mode}
 
 model:
   class_path: DefaultModel
@@ -21,7 +26,7 @@ model:
     criterion:
       class_path: CrossEntropyLoss
 
-    vis_per_batch: 10
+    vis_per_batch: 0
 
 data:
   class_path: Cifar10DataModule
