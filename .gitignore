@@ -5,7 +5,7 @@
 .python-version
 
 # data files
-data*
+/data*
 
 # outputs
 artifacts
