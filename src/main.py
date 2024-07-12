@@ -22,6 +22,7 @@ except:
     CLI = RichTensorboardCLI
 
 
+import callbacks
 import dataset
 import net
 import model
