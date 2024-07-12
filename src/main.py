@@ -13,11 +13,11 @@ try:
     if os.environ.get("WANDB_DISABLED", False):
         raise ImportError
     import wandb
-    from cli_module.rich_wandb import RichWandbCLI
+    from cli_modules.rich_wandb import RichWandbCLI
 
     CLI = RichWandbCLI
 except:
-    from cli_module.rich_tensorboard import RichTensorboardCLI
+    from cli_modules.rich_tensorboard import RichTensorboardCLI
 
     CLI = RichTensorboardCLI
 

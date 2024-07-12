@@ -48,7 +48,7 @@ class RichWandbCLI(RichCLI):
         parser.set_defaults(
             {
                 "trainer.logger": {
-                    "class_path": "cli_module.rich_wandb.CleanUpWandbLogger",
+                    "class_path": "cli_modules.rich_wandb.CleanUpWandbLogger",
                     "init_args": {
                         "project": "debug",
                         "save_dir": "logs",
