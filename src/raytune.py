@@ -51,8 +51,8 @@ def raytune_main():
     }
 
     metrics = {
-        "loss": "val_loss",
-        "acc": "val_acc",
+        "loss": "val/loss",
+        "acc": "val/acc",
     }
 
     scheduler = ASHAScheduler(

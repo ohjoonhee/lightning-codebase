@@ -55,12 +55,13 @@ class DefaultModel(L.LightningModule):
         pred = self(img)
 
         loss = self.criterion(pred, labels)
-        self.log("train_loss", loss.item())
+        self.log("train/loss", loss.item())
 
         return loss
 
     def on_validation_epoch_start(self) -> None:
-        self.table = wandb.Table(columns=["img", "label", "pred"])
+        if self.vis_per_batch:
+            self.table = wandb.Table(columns=["img", "label", "pred"])
 
     def validation_step(self, batch, batch_idx):
         img, labels = batch
@@ -71,8 +72,8 @@ class DefaultModel(L.LightningModule):
 
         self.log_dict(
             {
-                "val_loss": loss.item(),
-                "val_acc": acc,
+                "val/loss": loss.item(),
+                "val/acc": acc,
             },
             on_epoch=True,
             on_step=False,
@@ -91,11 +92,11 @@ class DefaultModel(L.LightningModule):
 
     def on_validation_epoch_end(self) -> None:
         if self.vis_per_batch:
-            self.logger.experiment.log({"val_preds": self.table})
+            self.logger.experiment.log({"val/samples": self.table})
 
     def test_step(self, batch, batch_idx):
         img, labels = batch
         pred = self(img)
 
         acc = self.accuracy(pred, labels)
-        self.log("test_acc", acc)
+        self.log("test/acc", acc)

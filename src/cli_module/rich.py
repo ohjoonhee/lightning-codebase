@@ -14,10 +14,11 @@ class RichCLI(LightningCLI):
         parser.add_lightning_class_args(ModelCheckpoint, "model_ckpt")
         parser.set_defaults(
             {
-                "model_ckpt.monitor": "val_loss",
+                "model_ckpt.monitor": "val/loss",
                 "model_ckpt.mode": "min",
                 "model_ckpt.save_last": True,
-                "model_ckpt.filename": "best-{epoch:02d}-{val_loss:.2f}",
+                "model_ckpt.filename": "best-epoch={epoch:02d}-val_loss={val/loss:.4f}",
+                "model_ckpt.auto_insert_metric_name": False,
             }
         )
 
@@ -27,7 +28,7 @@ class RichCLI(LightningCLI):
         parser.add_lightning_class_args(EarlyStopping, "early_stopping")
         parser.set_defaults(
             {
-                "early_stopping.monitor": "val_loss",
+                "early_stopping.monitor": "val/loss",
                 "early_stopping.mode": "min",
                 "early_stopping.strict": False,
             }
