@@ -50,7 +50,7 @@ class RichWandbCLI(RichCLI):
                 "trainer.logger": {
                     "class_path": "cli_modules.rich_wandb.CleanUpWandbLogger",
                     "init_args": {
-                        "project": "debug",
+                        "project": "lightning-codebase",
                         "save_dir": "logs",
                         # "log_model": "all",
                         "clean": True,
