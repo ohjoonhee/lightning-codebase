@@ -31,8 +31,6 @@ import transforms
 
 def cli_main(args: ArgsType = None, run: bool = True):
     torch.set_float32_matmul_precision("medium")
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
 
     try:
         cli = CLI(
