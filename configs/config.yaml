@@ -7,6 +7,7 @@ trainer:
   accelerator: auto
   precision: 16-mixed
   max_epochs: 300
+  deterministic: true
   plugins:
     - AsyncCheckpointIO
   callbacks:
