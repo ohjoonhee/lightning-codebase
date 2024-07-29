@@ -23,7 +23,7 @@ except:
 
 
 import callbacks
-import datasets
+import datamodules
 import nets
 import models
 import transforms
