@@ -1,6 +1,6 @@
 # lightning.pytorch==2.0.0
-name: my_experiment
-version: my_version
+name: my-experiment
+version: my-version
 
 seed_everything: 42
 trainer:
@@ -15,34 +15,33 @@ trainer:
       init_args:
         monitor: ${model_ckpt.monitor}
         mode: ${model_ckpt.mode}
+    - class_path: ClassificationSampleLogger
+      init_args:
+        val_epochs: 1
+        val_batches: 10
+        val_samples_per_batch: 10
 
 model:
-  class_path: DefaultModel
+  class_path: HFClassificationModel
   init_args:
-    net:
-      class_path: Cifar10Resnet18
-      init_args:
-        num_classes: 10
-
-    criterion:
-      class_path: CrossEntropyLoss
-
-    vis_per_batch: 0
+    net: textattack/bert-base-uncased-yelp-polarity
+    net_kwargs:
+      num_labels: 2
+    criterion: CrossEntropyLoss
 
 data:
-  class_path: Cifar10DataModule
+  class_path: HFIMDBDataModule
   init_args:
     root: data
-    batch_size: 128
+    batch_size: 8
     val_split: 0.1
-    transforms:
-      class_path: DefaultTransforms
+    num_workers: 4
+    tokenizer: textattack/bert-base-uncased-yelp-polarity
 
 optimizer:
-  class_path: SGD
+  class_path: Adam
   init_args:
-    lr: 0.1
-    momentum: 0.9
+    lr: 1e-4
     weight_decay: 5e-4
 
 lr_scheduler:
