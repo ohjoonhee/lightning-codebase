@@ -1,5 +1,7 @@
+import warnings
 import logging
 
+warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
 
