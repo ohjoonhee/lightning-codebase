@@ -1,75 +1,89 @@
-import pytorch_lightning as pl
+from typing import Optional
+from transformers import PreTrainedTokenizerBase
+
 import torch
-from datamodules import load_dataset
-from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Dataset
+from datasets import load_dataset
+from torch.utils.data import DataLoader
+
+import lightning as L
+
+from transformers import AutoTokenizer
 
 
-class IMDB(Dataset):
-    def __init__(self, tok, text, label):
-        self.tok = tok
-        self.text = text
-        self.label = label
-
-        assert len(self.text) == len(self.label)
-        print(f"Load {len(self.label)} data.")
-
-    def __getitem__(self, idx):
-        src = self.tok(
-            self.text[idx], truncation=True, padding="max_length", return_tensors="pt"
-        )
-        return {
-            "input_ids": src["input_ids"],
-            "token_type_ids": src["token_type_ids"],
-            "attention_mask": src["attention_mask"],
-            "labels": torch.tensor(self.label[idx]),
-        }
-
-    def __len__(self):
-        return len(self.label)
-
-
-class BaseDataModule(pl.LightningDataModule):
-    def __init__(self, config, tokenizer):
+class HFIMDBDataModule(L.LightningDataModule):
+    def __init__(
+        self,
+        root: str,
+        batch_size: int,
+        val_split: float,
+        tokenizer: str,
+        tokenizer_kwargs: Optional[dict] = None,
+        num_workers: int = 0,
+    ):
         super().__init__()
-        self.cfg = config
-        self.tokenizer = tokenizer
+        self.root = root
+        self.batch_size = batch_size
+        self.val_split = val_split
+        self.num_workers = num_workers
+        tokenizer_kwargs = tokenizer_kwargs or {}
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer, **tokenizer_kwargs)
 
     def prepare_data(self):
         """Only called from the main process for downloading dataset"""
-        load_dataset(self.cfg.dataset_name, split="train")
-        load_dataset(self.cfg.dataset_name, split="test")
+        load_dataset("imdb", split="train", cache_dir=self.root)
+        load_dataset("imdb", split="test", cache_dir=self.root)
 
     def setup(self, stage: str):
         if stage == "fit":
-            dset = load_dataset(self.cfg.dataset_name, split="train")
-            trn_text, val_text, trn_label, val_label = train_test_split(
-                dset["text"], dset["label"], test_size=0.1
+            ds = load_dataset("imdb", split="train", cache_dir=self.root)
+            ds = ds.rename_column("label", "labels")
+            ds = ds.map(
+                lambda x: self.tokenizer(
+                    x["text"],
+                    truncation=True,
+                    padding="max_length",
+                    return_tensors="pt",
+                ),
+                batched=True,
             )
-            self.trn_dset = IMDB(self.tokenizer, trn_text, trn_label)
-            self.val_dset = IMDB(self.tokenizer, val_text, val_label)
+            ds.set_format(type="torch", columns=ds.column_names)
+            split_ds = ds.train_test_split(test_size=self.val_split)
+            self.train_ds = split_ds["train"]
+            self.val_ds = split_ds["test"]
 
         if stage == "test":
-            dset = load_dataset(self.cfg.dataset_name, split="test")
-            self.tst_dset = IMDB(self.tokenizer, dset["text"], dset["label"])
+            ds = load_dataset("imdb", split="test", cache_dir=self.root)
+            ds = ds.rename_column("label", "labels")
+            ds = ds.map(
+                lambda x: self.tokenizer(
+                    x["text"],
+                    truncation=True,
+                    padding="max_length",
+                    return_tensors="pt",
+                ),
+                batched=True,
+                remove_columns=["text"],
+            )
+            ds.set_format(type="torch", columns=ds.column_names)
+            self.test_ds = ds
 
     def train_dataloader(self):
         return DataLoader(
-            self.trn_dset,
-            num_workers=self.cfg.num_workers,
-            batch_size=self.cfg.batch_size,
+            self.train_ds,
+            num_workers=self.num_workers,
+            batch_size=self.batch_size,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dset,
-            num_workers=self.cfg.num_workers,
-            batch_size=self.cfg.batch_size,
+            self.val_ds,
+            num_workers=self.num_workers,
+            batch_size=self.batch_size,
         )
 
     def test_dataloader(self):
         return DataLoader(
-            self.tst_dset,
-            num_workers=self.cfg.num_workers,
-            batch_size=self.cfg.batch_size,
+            self.test_ds,
+            num_workers=self.num_workers,
+            batch_size=self.batch_size,
         )
