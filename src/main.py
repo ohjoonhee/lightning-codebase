@@ -28,7 +28,6 @@ import callbacks
 import datamodules
 import nets
 import models
-import transforms
 
 
 def cli_main(args: ArgsType = None, run: bool = True):
