@@ -25,6 +25,7 @@ except:
 import callbacks
 import datasets
 import nets
+import optimizers
 import models
 import transforms
 

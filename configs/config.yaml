@@ -46,9 +46,10 @@ optimizer:
     weight_decay: 5e-4
 
 lr_scheduler:
-  class_path: CosineAnnealingLR
+  class_path: LinearWarmupCosineAnnealingLR
   init_args:
-    T_max: ${trainer.max_epochs}
+    warmup_epochs: 20
+    max_epochs: ${trainer.max_epochs}
 
 early_stopping:
   monitor: val/acc
